@@ -1,0 +1,232 @@
+import numpy as np
+
+# Data
+x = np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+y = np.array([1, 3, 2, 5, 7, 8, 8, 9, 10, 12])
+
+# Analytic Solution for Linear Regression
+x_mean = np.mean(x)
+y_mean = np.mean(y)
+
+# Compute coefficients
+numerator = np.sum((x - x_mean) * (y - y_mean))
+denominator = np.sum((x - x_mean) ** 2)
+beta1 = numerator / denominator
+beta0 = y_mean - beta1 * x_mean
+
+# Predicted values
+y_pred = beta0 + beta1 * x
+
+# Sum of Squared Errors (SSE) and R^2 value
+sse = np.sum((y - y_pred) ** 2)
+sst = np.sum((y - y_mean) ** 2)
+r_squared = 1 - (sse / sst)
+
+# Output results for analytic solution
+print(f"Analytic Solution Intercept (beta0): {beta0}")
+print(f"Analytic Solution Slope (beta1): {beta1}")
+print(f"Analytic Solution SSE: {sse}")
+print(f"Analytic Solution R^2: {r_squared}")
+
+# Full-Batch Gradient Descent for Linear Regression
+def gradient_descent_full_batch(x, y, alpha=0.01, epochs=1000, tolerance=1e-6):
+    n = len(x)
+    beta0 = beta1 = 0  # Initialize coefficients
+    prev_sse = float('inf')
+    
+    for epoch in range(epochs):
+        # Predicted values
+        y_pred = beta0 + beta1 * x
+        
+        # Compute gradients
+        d_beta0 = -(2/n) * np.sum(y - y_pred)
+        d_beta1 = -(2/n) * np.sum((y - y_pred) * x)
+        
+        # Update coefficients
+        beta0 -= alpha * d_beta0
+        beta1 -= alpha * d_beta1
+        
+        # Compute current SSE
+        sse = np.sum((y - y_pred) ** 2)
+        
+        # Stopping criteria based on SSE change
+        if abs(prev_sse - sse) < tolerance:
+            break
+        
+        prev_sse = sse
+
+    return beta0, beta1, sse
+
+# Run full-batch gradient descent
+beta0_gd, beta1_gd, sse_gd = gradient_descent_full_batch(x, y)
+
+# Output results for full-batch gradient descent
+print(f"Full-Batch GD Intercept: {beta0_gd}")
+print(f"Full-Batch GD Slope: {beta1_gd}")
+print(f"Full-Batch GD SSE: {sse_gd}")
+
+# Stochastic Gradient Descent for Linear Regression
+def stochastic_gradient_descent(x, y, alpha=0.01, epochs=1000, tolerance=1e-6):
+    n = len(x)
+    beta0 = beta1 = 0  # Initialize coefficients
+    prev_sse = float('inf')
+    
+    for epoch in range(epochs):
+        for i in range(n):
+            # Predicted value for a single data point
+            y_pred_i = beta0 + beta1 * x[i]
+            
+            # Compute gradients for this data point
+            d_beta0 = -(2) * (y[i] - y_pred_i)
+            d_beta1 = -(2) * (y[i] - y_pred_i) * x[i]
+            
+            # Update coefficients
+            beta0 -= alpha * d_beta0
+            beta1 -= alpha * d_beta1
+
+        # Calculate SSE for stopping criteria
+        y_pred = beta0 + beta1 * x
+        sse = np.sum((y - y_pred) ** 2)
+        
+        # Stopping criteria based on SSE change
+        if abs(prev_sse - sse) < tolerance:
+            break
+        
+        prev_sse = sse
+
+    return beta0, beta1, sse
+
+# Run stochastic gradient descent
+beta0_sgd, beta1_sgd, sse_sgd = stochastic_gradient_descent(x, y)
+
+# Output results for stochastic gradient descent
+print(f"SGD Intercept: {beta0_sgd}")
+print(f"SGD Slope: {beta1_sgd}")
+print(f"SGD SSE: {sse_sgd}")
+
+OutPut:
+Analytic Solution Intercept (beta0): 1.2363636363636363
+Analytic Solution Slope (beta1): 1.1696969696969697
+Analytic Solution SSE: 5.624242424242423
+Analytic Solution R^2: 0.952538038613988
+Full-Batch GD Intercept: 1.230898466943318
+Full-Batch GD Slope: 1.170568526128318
+Full-Batch GD SSE: 5.624329890820989
+SGD Intercept: 0.8966384537594206
+SGD Slope: 1.298682505055968
+SGD SSE: 7.576228785991173
+
+2)
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+# Load Boston Housing dataset from the original source
+data_url = "http://lib.stat.cmu.edu/datasets/boston"
+raw_df = pd.read_csv(data_url, sep="\s+", skiprows=22, header=None)
+data = np.hstack([raw_df.values[::2, :], raw_df.values[1::2, :2]])
+target = raw_df.values[1::2, 2]
+
+df = pd.DataFrame(data=data, columns=['CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM', 'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT'])
+df['PRICE'] = target
+
+correlation_matrix = df.corr()
+print("Correlation Matrix:\n", correlation_matrix['PRICE'])
+
+best_attribute = correlation_matrix['PRICE'].idxmax(axis=0)
+print(f"The attribute with the highest correlation with PRICE is: {best_attribute}")
+
+X = df[[best_attribute]].values
+y = df['PRICE'].values
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.4, random_state=1)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+X_train_mean = np.mean(X_train_scaled)
+y_train_mean = np.mean(y_train)
+
+numerator = np.sum((X_train_scaled - X_train_mean) * (y_train - y_train_mean))
+denominator = np.sum((X_train_scaled - X_train_mean) ** 2)
+beta_1_analytic = numerator / denominator
+beta_0_analytic = y_train_mean - beta_1_analytic * X_train_mean
+
+y_pred_analytic = beta_0_analytic + beta_1_analytic * X_test_scaled
+
+SSE_analytic = np.sum((y_test - y_pred_analytic) ** 2)
+SST = np.sum((y_test - np.mean(y_test)) ** 2)
+R2_analytic = 1 - SSE_analytic / SST
+
+print("Analytic Solution:")
+print(f"Beta 0 (Intercept): {beta_0_analytic}")
+print(f"Beta 1 (Slope): {beta_1_analytic}")
+print(f"SSE: {SSE_analytic}")
+print(f"R^2: {R2_analytic}")
+
+beta_0_gd = 0
+beta_1_gd = 0
+alpha = 0.01
+epochs = 1000
+
+for epoch in range(epochs):
+    y_pred_gd = beta_0_gd + beta_1_gd * X_train_scaled
+    error = y_pred_gd - y_train
+    beta_0_gd -= alpha * (1/len(y_train)) * np.sum(error)
+    beta_1_gd -= alpha * (1/len(y_train)) * np.sum(error * X_train_scaled)
+
+y_pred_gd_test = beta_0_gd + beta_1_gd * X_test_scaled
+
+SSE_gd = np.sum((y_test - y_pred_gd_test) ** 2)
+R2_gd = 1 - SSE_gd / SST
+
+print("\nGradient Descent Solution:")
+print(f"Beta 0 (Intercept): {beta_0_gd}")
+print(f"Beta 1 (Slope): {beta_1_gd}")
+print(f"SSE: {SSE_gd}")
+print(f"R^2: {R2_gd}")
+
+plt.scatter(X_test_scaled, y_test, color='blue', label='Test Data')
+plt.plot(X_test_scaled, y_pred_analytic, color='red', label='Analytic Solution')
+plt.plot(X_test_scaled, y_pred_gd_test, color='green', linestyle='--', label='Gradient Descent Solution')
+plt.xlabel(best_attribute)
+plt.ylabel('PRICE')
+plt.legend()
+plt.show()
+Output:
+Correlation Matrix:
+ CRIM      -0.388305
+ZN         0.360445
+INDUS     -0.483725
+CHAS       0.175260
+NOX       -0.427321
+RM         0.695360
+AGE       -0.376955
+DIS        0.249929
+RAD       -0.381626
+TAX       -0.468536
+PTRATIO   -0.507787
+B          0.333461
+LSTAT     -0.737663
+PRICE      1.000000
+Name: PRICE, dtype: float64
+The attribute with the highest correlation with PRICE is: PRICE
+Analytic Solution:
+Beta 0 (Intercept): 22.112541254125414
+Beta 1 (Slope): 2.743679870756823e-15
+SSE: 3766919.597054973
+R^2: -204.4666217372155
+/usr/local/lib/python3.10/dist-packages/numpy/core/fromnumeric.py:88: RuntimeWarning: overflow encountered in reduce
+  return ufunc.reduce(obj, axis, dtype, out, **passkwargs)
+<ipython-input-3-138d63069ea4>:58: RuntimeWarning: invalid value encountered in scalar subtract
+  beta_0_gd -= alpha * (1/len(y_train)) * np.sum(error)
+/usr/local/lib/python3.10/dist-packages/numpy/core/fromnumeric.py:88: RuntimeWarning: invalid value encountered in reduce
+  return ufunc.reduce(obj, axis, dtype, out, **passkwargs)
+Gradient Descent Solution:
+Beta 0 (Intercept): nan
+Beta 1 (Slope): nan
+SSE: nan
+R^2: nan
+
